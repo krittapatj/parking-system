@@ -1,0 +1,1 @@
+Columns: ["id","zone_id","slot_number","spot_status","last_updated","sensor_id"]

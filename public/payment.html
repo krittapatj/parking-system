@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ชำระเงินค่าจอดรถ</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        body { background: linear-gradient(to right, #667eea, #764ba2); display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .payment-card { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 90%; max-width: 400px; text-align: center; }
+        .price-display { font-size: 3rem; color: #764ba2; font-weight: bold; margin: 20px 0; }
+        .upload-area { border: 2px dashed #ccc; padding: 20px; border-radius: 8px; margin-bottom: 20px; cursor: pointer; transition: background 0.2s; display: block; }
+        .upload-area:hover { background: #f8f9fa; }
+        #previewImage { max-width: 100%; border-radius: 8px; display: none; margin-top: 15px; }
+        .btn-pay { background: #28a745; color: white; border: none; padding: 12px 20px; border-radius: 6px; font-size: 1.1rem; font-weight: bold; cursor: pointer; width: 100%; transition: background 0.2s; }
+        .btn-pay:hover { background: #218838; }
+        .btn-pay:disabled { background: #ccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div class="payment-card">
+    <h2>ชำระเงินค่าจอดรถ</h2>
+    <p style="color:#666; margin-bottom:0;">ยอดที่ต้องชำระ</p>
+    <div class="price-display">฿<span id="priceAmount">0</span></div>
+    
+    <form id="paymentForm">
+        <label for="slipUpload" class="upload-area">
+            <div id="uploadText">
+                <span style="font-size:2rem;">📄</span><br>
+                แตะเพื่อแนบสลีปโอนเงิน
+            </div>
+            <img id="previewImage" src="" alt="Slip Preview">
+        </label>
+        <input type="file" id="slipUpload" accept="image/*" style="display:none;" onchange="previewSlip(event)" required>
+        
+        <button type="submit" class="btn-pay" id="payBtn" disabled>ยืนยันการชำระเงิน</button>
+    </form>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('id');
+    const price = urlParams.get('price');
+
+    if(!userId) window.location.href = 'welcome_user.html';
+    
+    document.getElementById('priceAmount').innerText = price || "0";
+
+    function previewSlip(event) {
+        const input = event.target;
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('previewImage').src = e.target.result;
+                document.getElementById('previewImage').style.display = 'block';
+                document.getElementById('uploadText').style.display = 'none';
+                document.getElementById('payBtn').disabled = false;
+            }
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
+
+    document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fileInput = document.getElementById('slipUpload');
+        
+        if (!fileInput.files[0]) return alert("กรุณาแนบสลีป");
+        
+        const formData = new FormData();
+        formData.append('slip_image', fileInput.files[0]);
+        formData.append('id', userId);
+
+        document.getElementById('payBtn').disabled = true;
+        document.getElementById('payBtn').innerText = "กำลังดำเนินการ...";
+
+        try {
+            const res = await fetch('/pay', {
+                method: 'POST',
+                body: formData
+            });
+            const data = await res.json();
+            
+            if(data.success) {
+                alert(data.message);
+                window.location.href = 'welcome_user.html'; // กลับไปหน้าหลัก
+            } else {
+                alert("ข้อผิดพลาด: " + data.message);
+                document.getElementById('payBtn').disabled = false;
+                document.getElementById('payBtn').innerText = "ยืนยันการชำระเงิน";
+            }
+        } catch(err) {
+            console.error(err);
+            alert("Connection error");
+            document.getElementById('payBtn').disabled = false;
+            document.getElementById('payBtn').innerText = "ยืนยันการชำระเงิน";
+        }
+    });
+
+</script>
+
+</body>
+</html>

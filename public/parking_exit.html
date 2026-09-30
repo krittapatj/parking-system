@@ -1,0 +1,515 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สแกนออกจากที่จอด</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Prompt', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #999;
+            font-size: 0.95rem;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        
+        .info-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 25px;
+        }
+        
+        .info-card h3 {
+            font-size: 0.9rem;
+            color: #999;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        
+        .info-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #666;
+            font-size: 0.95rem;
+        }
+        
+        .info-label .icon {
+            font-size: 1.2rem;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: #333;
+            font-size: 0.95rem;
+        }
+        
+        .timer-section {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .timer-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 10px;
+        }
+        
+        .timer-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            font-family: 'Courier New', monospace;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+        }
+        
+        .timer-unit {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .warning-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+        }
+        
+        .warning-box strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .button-group {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Prompt', sans-serif;
+        }
+        
+        .btn-exit {
+            background: linear-gradient(to right, #28a745, #20c997);
+            color: white;
+        }
+        
+        .btn-exit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(40, 167, 69, 0.4);
+        }
+        
+        .btn-back {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-back:hover {
+            background: #e0e0e0;
+        }
+        
+        .btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-cancel:hover {
+            background: #dc3545;
+            color: white;
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+            transform: translateY(-2px);
+        }
+        
+        .scanner-link {
+            display: inline-block;
+            padding: 14px 28px;
+            background: #28a745;
+            color: white;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.3s;
+            width: 100%;
+            text-align: center;
+        }
+        
+        .scanner-link:hover {
+            background: #20c997;
+            transform: translateY(-2px);
+        }
+        
+        .status-message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .footer-text {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 20px;
+        }
+        
+        .timer-warning {
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.6; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="status-badge" id="statusBadge">🅿️ กำลังจอดรถ</div>
+            <h1 id="pageTitle">สแกนเข้า / สแกนออก</h1>
+            <p id="pageSubtitle">เพื่ออัปเดตสถานะการจอด</p>
+        </div>
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <!-- ข้อมูลการจอด -->
+        <div class="info-card">
+            <h3>ข้อมูลการจอด</h3>
+            <div class="info-row">
+                <span class="info-label"><span class="icon">📍</span>สถานที่</span>
+                <span class="info-value" id="locationName">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label"><span class="icon">🅿️</span>ช่องจอด</span>
+                <span class="info-value" id="slotNumber">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label"><span class="icon">🚗</span>โซน</span>
+                <span class="info-value" id="zoneName">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label"><span class="icon">🕐</span>เวลาเข้า</span>
+                <span class="info-value" id="entryTime">-</span>
+            </div>
+        </div>
+        
+        <!-- ตัวจับเวลา -->
+        <div class="timer-section" id="timerSection">
+            <div class="timer-label">เวลาที่จอดอยู่</div>
+            <div class="timer-display" id="timerDisplay">00:00:00</div>
+            <div class="timer-unit">ชั่วโมง : นาที : วินาที</div>
+        </div>
+        
+        <!-- เตือนราคา -->
+        <div class="warning-box" id="priceWarning" style="display:none;">
+            <strong>💰 ประมาณการค่าจอด:</strong>
+            <div>ราคาประมาณ ฿<span id="estimatedPrice">0</span></div>
+            <div style="margin-top: 5px; font-size: 0.85rem;">*(ราคาอาจเปลี่ยนแปลงตามเวลาจริง)</div>
+        </div>
+        
+        <!-- ปุ่มสแกนออก -->
+        <div class="button-group">
+            <a id="scanBtn" href="qr_scanner.html?mode=entry" class="scanner-link">📷 สแกนเข้า</a>
+        </div>
+        
+        <!-- ปุ่มอื่น ๆ -->
+        <div style="display: flex; gap: 12px;">
+            <button id="cancelBtn" class="btn btn-cancel" onclick="cancelBooking()">ยกเลิก</button>
+            <button class="btn btn-back" onclick="goHome()">หน้าหลัก</button>
+        </div>
+        
+        <div class="footer-text">
+            <p>📍 สแกน QR Code บนประตูหรือแสดงหน้าจอนี้</p>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user'));
+        
+        if (!token || !user) window.location.href = 'index.html';
+        
+        let booking = null;
+        let timerInterval = null;
+        let elapsedSeconds = 0;
+        
+        // โหลดข้อมูลการจอง
+        async function loadBookingInfo() {
+            try {
+                const res = await fetch(`/api/parking/my-booking/${user.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!res.ok) {
+                    window.location.href = 'welcome_user.html';
+                    return;
+                }
+                
+                booking = await res.json();
+                console.log('Booking data loaded:', booking);
+                
+                // Display info
+                document.getElementById('locationName').innerText = booking.location_name || '-';
+                document.getElementById('slotNumber').innerText = booking.slot_number || '-';
+                document.getElementById('zoneName').innerText = booking.zone_name || '-';
+                
+                // Calculate entry time display
+                console.log('actual_entry_time:', booking.actual_entry_time);
+                const entryDateTime = booking.actual_entry_time ? new Date(booking.actual_entry_time) : null;
+                if (entryDateTime) {
+                    document.getElementById('entryTime').innerText = entryDateTime.toLocaleTimeString('th-TH');
+                    
+                    document.getElementById('statusBadge').innerText = '🅿️ กำลังจอดรถ';
+                    document.getElementById('pageTitle').innerText = 'สแกนออก';
+                    document.getElementById('pageSubtitle').innerText = 'เพื่อสิ้นสุดการจอด';
+                    
+                    document.getElementById('cancelBtn').style.display = 'none';
+                    
+                    // Update scan button to exit mode
+                    const scanBtn = document.getElementById('scanBtn');
+                    scanBtn.href = 'qr_scanner.html?mode=exit';
+                    scanBtn.innerText = '📷 สแกนออก';
+                    console.log('✅ Button changed to exit mode');
+                    
+                    // Start timer
+                    startTimer(entryDateTime);
+                    
+                    // Show price warning after 10 minutes
+                    setTimeout(showPriceWarning, 10 * 60 * 1000);
+                } else {
+                    document.getElementById('entryTime').innerText = 'ยังไม่สแกนเข้า';
+                    
+                    document.getElementById('statusBadge').innerText = '🅿️ รอการสแกนเข้า';
+                    document.getElementById('pageTitle').innerText = 'สแกนเข้า';
+                    document.getElementById('pageSubtitle').innerText = 'เพื่อเริ่มการจอดและเปิดไม้กั้น';
+                    
+                    document.getElementById('cancelBtn').style.display = 'block';
+                    
+                    // Keep button as entry mode
+                    const scanBtn = document.getElementById('scanBtn');
+                    scanBtn.href = 'qr_scanner.html?mode=entry';
+                    scanBtn.innerText = '📷 สแกนเข้า';
+                }
+            } catch (err) {
+                console.error('Error loading booking:', err);
+                alert('ไม่สามารถโหลดข้อมูลการจอง');
+            }
+        }
+        
+        function startTimer(entryTime) {
+            // Update immediately with calculated elapsed time
+            elapsedSeconds = Math.floor((new Date() - entryTime) / 1000);
+            updateTimerDisplay();
+            // Then update every second
+            timerInterval = setInterval(() => {
+                elapsedSeconds = Math.floor((new Date() - entryTime) / 1000);
+                updateTimerDisplay();
+            }, 1000);
+        }
+        
+        function updateTimerDisplay() {
+            const hours = Math.floor(elapsedSeconds / 3600);
+            const minutes = Math.floor((elapsedSeconds % 3600) / 60);
+            const seconds = elapsedSeconds % 60;
+            
+            const display = `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+            document.getElementById('timerDisplay').innerText = display;
+            
+            // Update estimated price
+            updateEstimatedPrice(minutes + (hours * 60));
+            
+            // Add warning effect if close to next tier
+            const timerSection = document.getElementById('timerSection');
+            if ((minutes % 10 >= 9) || (minutes % 15 >= 14)) {
+                timerSection.classList.add('timer-warning');
+            } else {
+                timerSection.classList.remove('timer-warning');
+            }
+        }
+        
+        function updateEstimatedPrice(totalMinutes) {
+            const hourlyRate = 40; // ฿40 per hour
+            let estimatedFee = 0;
+            
+            if (totalMinutes <= 10) {
+                estimatedFee = 0;
+            } else if (totalMinutes <= 14) {
+                estimatedFee = hourlyRate * 0.25; // 1/4 hour
+            } else if (totalMinutes <= 19) {
+                estimatedFee = hourlyRate * 0.333; // 2/6 hour
+            } else if (totalMinutes <= 40) {
+                estimatedFee = hourlyRate * 0.5; // 1/2 hour
+            } else if (totalMinutes < 60) {
+                estimatedFee = hourlyRate;
+            } else {
+                const hours = Math.floor(totalMinutes / 60);
+                const mins = totalMinutes % 60;
+                
+                if (mins <= 5) {
+                    estimatedFee = hourlyRate * hours;
+                } else if (mins <= 10) {
+                    estimatedFee = hourlyRate * (hours + 1/6);
+                } else if (mins <= 20) {
+                    estimatedFee = hourlyRate * (hours + 2/6);
+                } else if (mins <= 30) {
+                    estimatedFee = hourlyRate * (hours + 3/6);
+                } else if (mins <= 40) {
+                    estimatedFee = hourlyRate * (hours + 4/6);
+                } else {
+                    estimatedFee = hourlyRate * (hours + 1);
+                }
+            }
+            
+            document.getElementById('estimatedPrice').innerText = estimatedFee.toFixed(2);
+        }
+        
+        function showPriceWarning() {
+            document.getElementById('priceWarning').style.display = 'block';
+        }
+        
+        async function cancelBooking() {
+            if (!booking) return;
+            
+            if (booking.actual_entry_time) {
+                alert('ไม่สามารถยกเลิกได้ เนื่องจากเริ่มการจอดไปแล้ว กรุณาสแกนออกเพื่อสิ้นสุดการจอด');
+                return;
+            }
+            
+            if (confirm('ต้องการยกเลิกการจองหรือไม่?')) {
+                try {
+                    const res = await fetch('/api/parking/cancel', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            booking_id: booking.booking_id,
+                            slot_id: booking.slot_id
+                        })
+                    });
+                    
+                    const data = await res.json();
+                    if (res.ok) {
+                        alert('ยกเลิกการจองสำเร็จ');
+                        window.location.href = 'welcome_user.html';
+                    } else {
+                        alert('เกิดข้อผิดพลาด: ' + (data.message || 'ไม่สามารถยกเลิกได้'));
+                    }
+                } catch (err) {
+                    console.error('Cancel error:', err);
+                    alert('ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์');
+                }
+            }
+        }
+        
+        function goHome() {
+            window.location.href = 'welcome_user.html';
+        }
+        
+        // Initialize timer display immediately
+        document.getElementById('timerDisplay').innerText = '00:00:00';
+        
+        // Load booking info immediately when page opens
+        loadBookingInfo();
+        
+        // Auto-refresh every 2 seconds to keep button state updated
+        setInterval(() => {
+            loadBookingInfo();
+        }, 2000);
+        
+        // Also load on page focus (when user comes back to tab)
+        window.addEventListener('focus', loadBookingInfo);
+        
+        // Clean up on page unload
+        window.addEventListener('beforeunload', () => {
+            if (timerInterval) clearInterval(timerInterval);
+        });
+    </script>
+</body>
+</html>

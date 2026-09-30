@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ชำระเงินด้วย E-Wallet</title>
+    <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Prompt', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .payment-container {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            color: #333;
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            color: #999;
+            font-size: 0.95rem;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 25px;
+            border-radius: 6px;
+        }
+        
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+        }
+        
+        .info-row:last-child {
+            margin-bottom: 0;
+        }
+        
+        .info-label {
+            color: #666;
+        }
+        
+        .info-value {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .price-section {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .price-section p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 8px;
+        }
+        
+        .price-display {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .price-subtitle {
+            font-size: 0.85rem;
+            opacity: 0.8;
+        }
+        
+        .duration-info {
+            background: #e7f3ff;
+            border: 1px solid #b3d9ff;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            color: #0056b3;
+        }
+        
+        .duration-info strong {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        .wallet-balance {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            color: #155724;
+        }
+        
+        .wallet-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        
+        .wallet-balance .balance-amount {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Prompt', sans-serif;
+        }
+        
+        .btn-pay {
+            background: linear-gradient(to right, #667eea, #764ba2);
+            color: white;
+        }
+        
+        .btn-pay:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-pay:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-back {
+            background: #f0f0f0;
+            color: #333;
+        }
+        
+        .btn-back:hover {
+            background: #e0e0e0;
+        }
+        
+        .status-message {
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            display: none;
+            text-align: center;
+            font-weight: 500;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status-loading {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 10px;
+            vertical-align: middle;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .footer-text {
+            text-align: center;
+            font-size: 0.85rem;
+            color: #999;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="header">
+            <h1>💳 ชำระค่าจอด</h1>
+            <p>ระบบ E-Wallet จำลอง</p>
+        </div>
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <div class="info-box">
+            <div class="info-row">
+                <span class="info-label">สถานที่ทำการ:</span>
+                <span class="info-value" id="locationName">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">ช่องจอด:</span>
+                <span class="info-value" id="slotNumber">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">ประเภท:</span>
+                <span class="info-value" id="bookingType">รายชั่วโมง</span>
+            </div>
+        </div>
+        
+        <div class="duration-info">
+            <strong>⏱️ เวลาจอด:</strong>
+            <div>เข้า: <span id="entryTime">-</span></div>
+            <div>ออก: <span id="exitTime">-</span></div>
+            <div style="margin-top: 8px; font-weight: 600;">รวม: <span id="totalDuration">0</span> นาที</div>
+        </div>
+        
+        <div class="price-section">
+            <p>ยอดประมาณการ</p>
+            <div class="price-display">฿<span id="priceAmount">0</span></div>
+            <div class="price-subtitle">ราคาต่อชั่วโมง ฿<span id="hourlyRate">0</span></div>
+        </div>
+        
+        <div class="wallet-balance">
+            <div class="wallet-label">
+                <span>💰 ยอดเงิน E-Wallet ของคุณ:</span>
+                <span class="balance-amount">฿<span id="walletBalance">1000</span></span>
+            </div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(0,0,0,0.1); font-size: 0.85rem;">
+                ⚠️ ระบบจำลอง - ยอดเงินจะไม่หักจริง
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn btn-pay" id="payBtn" onclick="processPayment()">ยืนยันการชำระ</button>
+            <button class="btn btn-pay" id="backBtn" onclick="window.location.href='welcome_user.html'" style="display:none;">กลับไปยังหน้าหลัก</button>
+        </div>
+        
+        <div class="footer-text">
+            <p>💳 ระบบชำระเงินแบบ E-Wallet จำลอง</p>
+            <p style="margin-top: 5px;">สำหรับทดสอบและพัฒนา</p>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user'));
+        
+        if (!token || !user) window.location.href = 'index.html';
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const bookingId = urlParams.get('booking_id');
+        const hourlyRate = parseFloat(urlParams.get('hourly_rate') || '0');
+        const totalFee = parseFloat(urlParams.get('total_fee') || '0');
+        let duration = parseInt(urlParams.get('duration') || urlParams.get('duration_minutes') || '0');
+        const locationName = urlParams.get('location_name') || 'ไม่ระบุ';
+        const slotNumber = urlParams.get('slot_number') || '-';
+        const entryTime = urlParams.get('entry_time') || '-';
+        const exitTime = urlParams.get('exit_time') || '-';
+        
+        // ถ้า duration เป็น 0 ลองคำนวนจาก entry และ exit time
+        if (duration === 0 && entryTime !== '-' && exitTime !== '-') {
+            try {
+                const entry = new Date(decodeURIComponent(entryTime));
+                const exit = new Date(decodeURIComponent(exitTime));
+                if (entry && exit && !isNaN(entry) && !isNaN(exit)) {
+                    duration = Math.floor((exit - entry) / (1000 * 60)); // Convert to minutes
+                    console.log('Duration calculated from times:', duration, 'minutes');
+                }
+            } catch (e) {
+                console.error('Error parsing times:', e);
+            }
+        }
+        
+        // ตรวจสอบว่ามีข้อมูลครบไหม
+        if (!bookingId || isNaN(totalFee) || isNaN(duration)) {
+            console.error('❌ Missing required data:', { bookingId, totalFee, duration, entryTime, exitTime });
+        }
+        
+        // Display info
+        document.getElementById('locationName').innerText = locationName;
+        document.getElementById('slotNumber').innerText = slotNumber;
+        document.getElementById('priceAmount').innerText = totalFee.toFixed(2);
+        document.getElementById('hourlyRate').innerText = hourlyRate.toFixed(2);
+        document.getElementById('totalDuration').innerText = duration;
+        document.getElementById('entryTime').innerText = entryTime;
+        document.getElementById('exitTime').innerText = exitTime;
+        
+        // Simulate wallet (จำลองเงิน)
+        let walletBalance = 1000;
+        updateWalletDisplay();
+        
+        function updateWalletDisplay() {
+            document.getElementById('walletBalance').innerText = walletBalance.toFixed(2);
+        }
+        
+        function showStatus(message, type) {
+            const statusEl = document.getElementById('statusMessage');
+            statusEl.innerText = message;
+            statusEl.className = 'status-message status-' + type;
+            statusEl.style.display = 'block';
+        }
+        
+        async function processPayment() {
+            if (!bookingId || isNaN(totalFee) || totalFee < 0) {
+                showStatus('❌ ข้อมูลไม่ครบ', 'error');
+                return;
+            }
+            
+            const payBtn = document.getElementById('payBtn');
+            payBtn.disabled = true;
+            showStatus('<span class="loading-spinner"></span>กำลังประมวลผล...', 'loading');
+            
+            try {
+                // ตรวจสอบเงิน
+                if (walletBalance < totalFee) {
+                    showStatus('❌ เงินไม่พอ ต้องการ ฿' + totalFee.toFixed(2), 'error');
+                    payBtn.disabled = false;
+                    return;
+                }
+                
+                // เรียก API จำลองจ่ายเงิน
+                const res = await fetch('/api/parking/process-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        booking_id: bookingId,
+                        user_id: user.id,
+                        amount: totalFee,
+                        payment_method: 'E-Wallet'
+                    })
+                });
+                
+                const data = await res.json();
+                
+                if (res.ok) {
+                    // หัก เงิน (จำลอง)
+                    walletBalance -= totalFee;
+                    updateWalletDisplay();
+                    
+                    showStatus('✅ ชำระเงินสำเร็จ! สัญญาณ: ' + data.payment_id, 'success');
+                    
+                    // Hide pay button and show back button
+                    document.getElementById('payBtn').style.display = 'none';
+                    document.getElementById('backBtn').style.display = 'block';
+                    
+                    // Auto-redirect after 5 seconds if user doesn't click
+                    setTimeout(() => {
+                        window.location.href = 'welcome_user.html';
+                    }, 5000);
+                } else {
+                    showStatus('❌ ' + (data.message || 'ชำระเงินไม่สำเร็จ'), 'error');
+                    payBtn.disabled = false;
+                }
+            } catch (err) {
+                showStatus('❌ เกิดข้อผิดพลาด: ' + err.message, 'error');
+                payBtn.disabled = false;
+            }
+        }
+        
+        function goBack() {
+            window.location.href = 'parking_exit.html';
+        }
+    </script>
+</body>
+</html>

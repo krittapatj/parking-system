@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Scanner</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <style>
+        body { background: #f4f7f6; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .scanner-container { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-bottom: 20px; }
+        h2 { color: #333; margin-bottom: 10px; }
+        .back-btn { margin-top: 15px; background: #6c757d; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; }
+    </style>
+</head>
+<body>
+    <div class="scanner-container">
+        <h2 id="scanTitle">สแกน QR Code เพื่อเข้า</h2>
+        <div id="reader"></div>
+        <p id="statusTxt" style="color: #666;">กำลังรอกล้อง...</p>
+        <button class="back-btn" onclick="goBack()">กลับ</button>
+        <hr style="margin: 15px 0;">
+        <p style="font-size: 0.85rem; color: #999;">🔧 Dev Mode</p>
+        <button id="testBtn" style="width: 100%; background: #ffc107; color: black; padding: 10px; margin-top: 5px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">🧪 Test Scan (ทดสอบ)</button>
+    </div>
+
+    <script>
+        const user = JSON.parse(localStorage.getItem('user'));
+        const token = localStorage.getItem('token');
+        if (!user || !token) window.location.href = 'index.html';
+
+        let isScanning = true;
+        const urlParams = new URLSearchParams(window.location.search);
+        const scanMode = urlParams.get('mode') || 'enter'; // 'enter' หรือ 'exit'
+        
+        console.log('QR Scanner loaded with mode:', scanMode);
+        
+        // Update title based on mode
+        document.getElementById('scanTitle').innerText = 
+            scanMode === 'exit' ? '📷 สแกน QR Code เพื่อออก' : '📷 สแกน QR Code เพื่อเข้า';
+        
+        function goBack() {
+            const backUrl = scanMode === 'exit' ? 'parking_exit.html' : 'welcome_user.html';
+            window.location.href = backUrl;
+        }
+
+        async function handleScanSuccess(decodedText) {
+            if (!isScanning) return;
+            isScanning = false;
+            document.getElementById('statusTxt').innerText = "กำลังประมวลผล...";
+            
+            try {
+                const token = localStorage.getItem('token');
+                
+                // First, get current active booking
+                const bookingRes = await fetch(`/api/parking/my-booking/${user.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (!bookingRes.ok) {
+                    throw new Error('No active booking found');
+                }
+                
+                const booking = await bookingRes.json();
+                const booking_id = booking.booking_id;
+                
+                // Determine mode: URL parameter takes priority
+                const isEntryMode = scanMode === 'entry';
+                const isExitMode = scanMode === 'exit';
+                
+                console.log('Scan mode:', { isEntryMode, isExitMode, scanMode });
+                console.log('Booking actual_entry_time:', booking.actual_entry_time);
+                
+                if (isEntryMode) {
+                    console.log('⏳ ENTRY MODE - Recording entry time');
+                    // ENTRY MODE: Record entry time
+                    const entryRes = await fetch('/api/parking/record-entry', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            booking_id: booking_id,
+                            scanned_qr: decodedText
+                        })
+                    });
+                    
+                    if (!entryRes.ok) {
+                        const errData = await entryRes.json().catch(() => ({}));
+                        throw new Error(errData.message || 'Entry recording failed');
+                    }
+                    
+                    console.log('✅ Entry recorded successfully');
+                    alert('✅ สแกนเข้าสำเร็จ!\n🚗 ประตูเปิด️\n📍 ' + booking.location_name + '\n🅿️ ' + booking.slot_number);
+                    
+                    // Start timer for expiry warnings
+                    startParkingTimer(booking_id, booking.entry_time);
+                    
+                    setTimeout(() => {
+                        // Ensure button shows when returning to welcome page
+                        sessionStorage.setItem('justEnteredParking', 'true');
+                        window.location.href = 'welcome_user.html';
+                    }, 2000);
+                } else if (isExitMode) {
+                    console.log('⏹️ EXIT MODE - Recording exit and calculating fee');
+                    // EXIT MODE: Must have actual_entry_time set
+                    if (!booking.actual_entry_time) {
+                        alert('❌ ยังไม่ได้สแกนเข้า กรุณาสแกนเข้าก่อน');
+                        isScanning = true;
+                        document.getElementById('statusTxt').innerText = "สแกนอีกครั้ง...";
+                        return;
+                    }
+                    
+                    // EXIT MODE: Calculate fee and go to payment
+                    const hourly_rate = booking.booking_type === 'hourly' ? 40 : 15;
+                    
+                    const feeRes = await fetch('/api/parking/calculate-fee', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({
+                            booking_id: booking_id,
+                            hourly_rate: hourly_rate,
+                            scanned_qr: decodedText
+                        })
+                    });
+                    
+                    if (!feeRes.ok) {
+                        const errData = await feeRes.json().catch(() => ({}));
+                        throw new Error(errData.message || 'Calculation failed');
+                    }
+                    const feeData = await feeRes.json();
+                    
+                    console.log('✅ Exit recorded and fee calculated:', feeData);
+                    alert(`✅ สแกนออกสำเร็จ!\n⏱️ เวลาจอด: ${feeData.durationMinutes} นาที\n💰 ค่าจอด: ฿${feeData.totalFee.toFixed(2)}`);
+                    
+                    // Go to E-Wallet payment page
+                    const exitTime = new Date().toISOString(); // ใช้ Full ISO string + date
+                    const paymentUrl = `payment_ewallet.html?booking_id=${booking_id}&hourly_rate=${hourly_rate}&total_fee=${feeData.totalFee}&duration=${feeData.durationMinutes}&location_name=${booking.location_name}&slot_number=${booking.slot_number}&entry_time=${encodeURIComponent(booking.actual_entry_time || booking.entry_time || 'ไม่ระบุ')}&exit_time=${encodeURIComponent(exitTime)}&duration_minutes=${feeData.durationMinutes}`;
+                    console.log('Payment URL:', paymentUrl);
+                    window.location.href = paymentUrl;
+                }
+            } catch(e) {
+                console.error(e);
+                alert("❌ " + e.message);
+                isScanning = true;
+                document.getElementById('statusTxt').innerText = "สแกนอีกครั้ง...";
+            }
+        }
+
+        // Timer for parking reminders
+        function startParkingTimer(booking_id, entry_time) {
+            // First warning at 10 minutes before expected exit
+            // Second warning at 5 minutes before
+            // This is simplified - in real app would use actual booking end time
+            const warningTime1 = 50 * 60 * 1000; // 50 min = 10 min before 1 hour
+            const warningTime2 = 55 * 60 * 1000; // 55 min = 5 min before 1 hour
+            
+            setTimeout(() => {
+                if (Notification.permission === 'granted') {
+                    new Notification('🅿️ การจ์ด - เตือน', {
+                        body: 'เหลือ 10 นาที ก่อนหมดเวลาจอด',
+                        icon: 'https://via.placeholder.com/100'
+                    });
+                } else {
+                    alert('⚠️ เตือน: เหลือ 10 นาที ก่อนหมดเวลาจอด');
+                }
+            }, warningTime1);
+            
+            setTimeout(() => {
+                if (Notification.permission === 'granted') {
+                    new Notification('🅿️ การจ์ด - เตือน !!', {
+                        body: 'เหลือ 5 นาที!! เตรียมออก',
+                        icon: 'https://via.placeholder.com/100'
+                    });
+                } else {
+                    alert('⚠️ เตือน: เหลือ 5 นาที!! เตรียมออก');
+                }
+            }, warningTime2);
+        }
+
+        // Request notification permission
+        if ('Notification' in window && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+
+        console.log('🚀 QR Scanner initialized, mode:', scanMode);
+        const html5QrcodeScanner = new Html5QrcodeScanner(
+            "reader", { fps: 10, qrbox: 250 });
+        console.log('✅ Html5QrcodeScanner created');
+        
+        try {
+            html5QrcodeScanner.render(handleScanSuccess);
+            console.log('✅ Scanner rendered and listening');
+        } catch(e) {
+            console.error('❌ Scanner failed:', e);
+            document.getElementById('statusTxt').innerText = 'Camera error: ' + e.message;
+        }
+
+        // Test button for development
+        document.getElementById('testBtn').addEventListener('click', () => {
+            console.log('🧪 Test scan triggered');
+            handleScanSuccess('TEST_QR_CODE');
+        });
+    </script>
+</body>
+</html>
